@@ -1,3 +1,9 @@
+venv/
+*.csv
+__pycache__/
+testingntrials/
+*.xlsx
+results/
 # Ignore ALL data
 data/
 
