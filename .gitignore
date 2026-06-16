@@ -4,3 +4,24 @@ __pycache__/
 testingntrials/
 *.xlsx
 results/
+# Ignore ALL data
+data/
+
+# Ignore models
+models/
+
+# Ignore reports
+reports/
+
+# Ignore CSV files anywhere
+*.csv
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
