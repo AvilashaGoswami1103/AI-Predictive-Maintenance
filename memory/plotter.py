@@ -9,7 +9,7 @@ data['ts'] = pd.to_datetime(data['ts'], format='mixed')
 
 
 # Filter for anomalies
-anomalies = data[data['anomaly_score'] >= 0.21]
+anomalies = data[data['anomaly_score'] >= 0.23]
 
 fig = go.Figure()
 
