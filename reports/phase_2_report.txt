@@ -1,0 +1,67 @@
+### Phase 2: Data Cleaning and Exploratory Analysis
+
+The purpose of this phase was to improve data quality, verify dataset integrity, and understand the operational behavior of the monitored servers prior to machine learning model development.
+
+#### Data Quality Assessment
+
+The integrated dataset was inspected for:
+
+* Missing values
+* Duplicate records
+* Invalid timestamps
+* Inconsistent data formats
+
+Timestamp values were converted into a standardized datetime format to support time-series analysis. Records were sorted chronologically for each server to preserve temporal ordering.
+
+#### Status Encoding
+
+Operational status labels were transformed into numerical representations to enable future machine learning processing.
+
+Example:
+
+* Normal = 0
+* Warning = 1
+
+#### Statistical Analysis
+
+Descriptive statistics were computed for CPU utilization values, including:
+
+* Minimum CPU utilization
+* Maximum CPU utilization
+* Mean CPU utilization
+* Standard deviation
+
+Server-wise average CPU utilization was also calculated to identify differences in workload distribution across hosts.
+
+#### Outlier Analysis
+
+Interquartile Range (IQR) analysis was performed to identify abnormal CPU utilization events.
+
+The lower and upper bounds were calculated using:
+
+Q1 − 1.5 × IQR
+
+and
+
+Q3 + 1.5 × IQR
+
+The analysis identified 58 CPU utilization outliers exceeding the calculated upper threshold of 64.5%.
+
+These outliers were intentionally retained because they represent potentially significant workload spikes and abnormal operating conditions that are valuable for predictive maintenance and anomaly detection.
+
+#### Temporal Analysis
+
+CPU utilization was visualized over the complete monitoring period of approximately two months.
+
+The analysis revealed:
+
+* Stable operating periods with low to moderate utilization
+* Multiple high-utilization spikes reaching up to 100%
+* Variations in workload intensity over time
+* Distinct operational behavior among servers
+
+The timestamp interval analysis confirmed a sampling frequency of approximately five minutes between observations, making the dataset suitable for time-series forecasting techniques.
+
+#### Outcome
+
+The dataset was successfully cleaned, validated, and prepared for feature engineering. High-utilization events were preserved for future anomaly detection and risk prediction models. The resulting dataset provides a reliable foundation for predictive maintenance analysis and machine learning model development.

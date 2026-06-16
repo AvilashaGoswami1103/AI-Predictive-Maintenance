@@ -1,0 +1,49 @@
+### Phase 1: Data Acquisition and Integration
+
+The objective of this phase was to collect and integrate CPU and processor-related monitoring data from multiple servers into a unified dataset suitable for predictive maintenance analysis.
+
+#### Data Sources
+
+Two categories of datasets were utilized for each server:
+
+1. Resource Utilization Data
+
+   * Host ID
+   * Timestamp
+   * CPU Usage Percentage
+   * Memory Usage Percentage
+   * Power Consumption (kW)
+   * Operational Status
+
+2. Processor Health Data
+
+   * Server ID
+   * Timestamp
+   * Inlet Temperature
+   * CPU Temperature
+   * Processor Count
+
+Data was collected from three servers operating within the data center environment.
+
+#### Data Integration Process
+
+For each server, resource utilization data and processor health data were merged using the common timestamp and server identifier fields. This enabled the creation of a comprehensive view of processor activity and thermal conditions at each sampling interval.
+
+After merging individual server datasets, all servers were consolidated into a single master dataset. Host names were mapped to their corresponding server identifiers to facilitate server-wise analysis.
+
+The resulting integrated dataset contained the following attributes:
+
+* Host ID
+* Host Name
+* Timestamp
+* CPU Usage Percentage
+* Memory Usage Percentage
+* Power Consumption
+* Status
+* Inlet Temperature
+* CPU Temperature
+* Processor Count
+
+#### Outcome
+
+A unified CPU maintenance dataset was successfully generated, containing historical workload, thermal, and power-related information for all monitored servers. This dataset serves as the foundation for subsequent cleaning, feature engineering, forecasting, and anomaly detection tasks.
