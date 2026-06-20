@@ -16,7 +16,7 @@ leakage_cols = ['rolling_mean_1h', 'rolling_mean_24h', 'rolling_std_1h', 'rollin
 df[leakage_cols] = df.groupby('host_id')[leakage_cols].shift(1)
 
 # Setup Forecasting Horizon
-FORECAST_HORIZON = 24
+FORECAST_HORIZON = 1
 df['target_forecast'] = df.groupby('host_id')['memory_usage_pct'].shift(-FORECAST_HORIZON)
 
 # Remove Invalid Rows resulting from shifts
@@ -43,7 +43,7 @@ print(f"Data shapes - Train: {X_train.shape}, Val: {X_val.shape}, Test: {X_test.
 model = xgb.XGBRegressor(
     n_estimators=500, 
     max_depth=6, 
-    learning_rate=0.2, 
+    learning_rate=0.05, 
     subsample=0.8, 
     colsample_bytree=0.8, 
     random_state=42
@@ -68,6 +68,14 @@ def print_metrics(name, y_true, y_pred):
 print_metrics("Train", y_train, y_pred_train)
 print_metrics("Validation", y_val, y_pred_val)
 print_metrics("Test", y_test, y_pred_test)
+
+# Save test results to CSV
+results_df = df.loc[X_test.index, ['id', 'ts', 'host_id', 'memory_usage_pct']].copy()
+results_df['actual_forecast'] = y_test
+results_df['predicted_forecast'] = y_pred_test
+results_path = r'C:\AI-Predictive-Maintenance\memory\usage_pred_results.csv'
+results_df.to_csv(results_path, index=False)
+print(f"Test results saved successfully to {results_path}")
 
 # Plotting: Scatter plots
 plt.figure(figsize=(15, 6))
