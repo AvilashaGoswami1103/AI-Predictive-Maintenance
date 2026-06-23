@@ -10,6 +10,11 @@ df = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\out.csv")
 # Sort by time
 df['ts'] = pd.to_datetime(df['ts'], format='mixed', utc=True).dt.tz_convert(None)
 df = df.sort_values('ts')
+# Preserve unshifted columns for the final results CSV
+df['orig_rolling_std_24h'] = df['rolling_std_24h']
+df['orig_growth_rate'] = df['growth_rate']
+df['orig_acceleration'] = df['acceleration']
+
 # Shift target leakage columns by 1 (per host) to use historical data for current prediction
 leakage_cols = ['rolling_mean_1h', 'rolling_mean_24h', 'rolling_std_1h', 'rolling_std_24h', 
                 'growth_rate', 'acceleration', 'Z_score', 'trend', 'volatility_ratio']
@@ -24,7 +29,7 @@ df = df.dropna()
 
 # Drop columns that are not features (e.g., id, ts, status, target_forecast) and separate target
 # Note: memory_usage_pct is kept as a feature for forecasting
-features = df.drop(columns=['id', 'ts', 'status', 'host_id', 'target_forecast'])
+features = df.drop(columns=['id', 'ts', 'status', 'host_id', 'target_forecast', 'orig_rolling_std_24h', 'orig_growth_rate', 'orig_acceleration'])
 target = df['target_forecast']
 
 # Split data: 75% train, 10% val, 15% test
@@ -41,8 +46,8 @@ print(f"Data shapes - Train: {X_train.shape}, Val: {X_val.shape}, Test: {X_test.
 
 # Initialize XGBoost Regressor for forecasting
 model = xgb.XGBRegressor(
-    n_estimators=500, 
-    max_depth=6, 
+    n_estimators=2000, 
+    max_depth=8, 
     learning_rate=0.05, 
     subsample=0.8, 
     colsample_bytree=0.8, 
@@ -70,12 +75,18 @@ print_metrics("Validation", y_val, y_pred_val)
 print_metrics("Test", y_test, y_pred_test)
 
 # Save test results to CSV
-results_df = df.loc[X_test.index, ['id', 'ts', 'host_id', 'memory_usage_pct']].copy()
+results_df = df.loc[X_test.index, ['id', 'ts', 'host_id', 'memory_usage_pct', 'orig_rolling_std_24h', 'orig_growth_rate', 'orig_acceleration']].copy()
+results_df = results_df.rename(columns={
+    'orig_rolling_std_24h': 'rolling_std_24h',
+    'orig_growth_rate': 'growth_rate',
+    'orig_acceleration': 'acceleration'
+})
 results_df['actual_forecast'] = y_test
 results_df['predicted_forecast'] = y_pred_test
-results_path = r'C:\AI-Predictive-Maintenance\memory\usage_pred_results.csv'
+results_path = r'C:\AI-Predictive-Maintenance\memory\results\usage_pred_results.csv'
 results_df.to_csv(results_path, index=False)
 print(f"Test results saved successfully to {results_path}")
+
 
 # Plotting: Scatter plots
 plt.figure(figsize=(15, 6))
@@ -118,6 +129,6 @@ plt.xlabel('Time')
 plt.ylabel('Memory Usage %')
 plt.legend()
 plt.tight_layout()
-plt.savefig(r'C:\AI-Predictive-Maintenance\memory\forecast_timeseries.png')
+plt.savefig(r'C:\AI-Predictive-Maintenance\memory\results\forecast_timeseries.png')
 
 print("Plots saved successfully.")
