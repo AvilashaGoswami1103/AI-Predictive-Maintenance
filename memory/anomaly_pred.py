@@ -1,4 +1,5 @@
 import pandas as pd 
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
@@ -6,11 +7,11 @@ from sklearn.ensemble import IsolationForest
 # Read from the prediction results
 data = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\usage_pred_results.csv")
 
-# Drop any potential NaNs (fixed from anomaly_det.py where it wasn't assigned back)
-data = data.dropna()
+# Drop any potential NaNs or infinite values (created by pct_change)
+data = data.replace([np.inf, -np.inf], np.nan).dropna()
 
 # Using predicted_forecast instead of memory_usage_pct
-features = [ "predicted_forecast", "rolling_std_24h", "growth_rate", "acceleration"]
+features = [ "predicted_forecast", "predicted_rolling_std_24h", "predicted_growth_rate", "predicted_acceleration"]
 
 X = data[features]
 
@@ -28,8 +29,10 @@ scores = model.decision_function(X_scaled)
 
 data["anomaly_score"] = -scores
 
-# Handle timezone localization similarly
-data["ts"] = pd.to_datetime(data["ts"], format='mixed').dt.tz_localize(None)
+# Parse timezone safely. If it's already naive, skip tz_localize to avoid TypeError
+data["ts"] = pd.to_datetime(data["ts"], format='mixed')
+if data["ts"].dt.tz is not None:
+    data["ts"] = data["ts"].dt.tz_localize(None)
 
 # Save result
 output_path = r"C:\AI-Predictive-Maintenance\memory\results\anomaly_pred_result.csv"

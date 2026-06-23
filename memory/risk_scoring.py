@@ -3,13 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-df1 = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\anomaly_result.csv")
-df_pred = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\anomaly_pred_result.csv")
+df_rs = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\anomaly_result.csv")
 
-df_pred = df_pred.rename(columns={'anomaly_score': 'predicted_anomaly_score'})
+# Drop any NaNs or infinite values inherited from previous steps to prevent risk functions from crashing
+df_rs = df_rs.replace([np.inf, -np.inf], np.nan).dropna()
+df_rs['instant_change'] = abs(df_rs['memory_usage_pct'] - df_rs['memory_usage_pct'].shift(1))
 
-# Merge using 'id' to avoid potential timestamp string formatting mismatches between scripts
-df_rs = pd.merge(df1, df_pred[['id', 'predicted_forecast', 'predicted_anomaly_score']], on='id', how='inner')
+def transition_risk(instant_change):
+    return min(100, instant_change * 2)
+
 
 #calculate current risk based on mem usage
 def current_risk(memory_usage):
@@ -25,19 +27,7 @@ def current_risk(memory_usage):
     else :
         return 100
     
-# calculate forecast risk based on forecast of mem usage pct
-def forecast_risk(forecast_memory):
-    if forecast_memory < 50:
-        return 10
-    
-    elif forecast_memory < 70:
-        return 40
-    
-    elif forecast_memory < 85:
-        return 80
-    
-    else :
-        return 100
+
     
 
 #calculate the status of risk
@@ -62,12 +52,6 @@ def anomaly_risk(score, min_score=-0.3, max_score=0.3):
 
     return np.clip(risk,0,100)
 
-#calculate the predicted anomaly risk based on the anomaly detection on predicted data
-def predicted_anomaly_risk(score, min_score=-0.3, max_score=0.3):
-
-    risk = 100 * ((score - min_score) / (max_score - min_score))
-
-    return np.clip(risk, 0, 100)
 
 
 max_std = df_rs['rolling_std_24h'].max()
@@ -81,11 +65,10 @@ def stability_risk(std):
     )
 
 df_rs['risk_score'] = (
-    0.15 * df_rs['memory_usage_pct'].apply(current_risk) +
-    0.20 * df_rs['predicted_forecast'].apply(forecast_risk) +
-    0.20 * df_rs['anomaly_score'].apply(anomaly_risk) +
-    0.20 * df_rs['predicted_anomaly_score'].apply(predicted_anomaly_risk) +
-    0.25 * df_rs['rolling_std_24h'].apply(stability_risk)
+    0.25 * df_rs['memory_usage_pct'].apply(current_risk) +
+    0.40 * df_rs['anomaly_score'].apply(anomaly_risk) +
+    0.25 * df_rs['instant_change'].apply(transition_risk) +
+    0.20 * df_rs['rolling_std_24h'].apply(stability_risk)
 )
 
 df_rs['status_risk_score'] = (
@@ -111,7 +94,6 @@ ax = plt.gca()
 # Prepare x-axis and data
 x = np.arange(len(df_rs))
 y_mem = df_rs['memory_usage_pct'].values
-y_pred = df_rs['predicted_forecast'].values
 
 # Map statuses to colors
 status_to_color = {
@@ -129,14 +111,7 @@ points_mem = np.array([x, y_mem]).T.reshape(-1, 1, 2)
 segments_mem = np.concatenate([points_mem[:-1], points_mem[1:]], axis=1)
 lc_mem = LineCollection(segments_mem, colors=colors[:-1], linewidth=2.5)
 
-# Create line segments for forecast
-points_pred = np.array([x, y_pred]).T.reshape(-1, 1, 2)
-segments_pred = np.concatenate([points_pred[:-1], points_pred[1:]], axis=1)
-# Use a dashed line style for forecast to differentiate it
-lc_pred = LineCollection(segments_pred, colors=colors[:-1], linewidth=2.5, linestyles='dashed')
-
 ax.add_collection(lc_mem)
-ax.add_collection(lc_pred)
 ax.autoscale()
 
 # Configure X-axis ticks
@@ -147,8 +122,7 @@ if x_col == 'ts':
 
 # Create a custom legend
 legend_elements = [
-    Line2D([0], [0], color='black', lw=2.5, label='Memory Usage (%)'),
-    Line2D([0], [0], color='black', lw=2.5, linestyle='dashed', label='Predicted Forecast (%)')
+    Line2D([0], [0], color='black', lw=2.5, label='Memory Usage (%)')
 ]
 for status, color in status_to_color.items():
     if status in df_rs['status_risk_score'].values:
@@ -156,7 +130,7 @@ for status, color in status_to_color.items():
 
 ax.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left')
 
-plt.title('Continuous Memory Usage and Forecast Over Time (Colored by Risk)')
+plt.title('Continuous Memory Usage Over Time (Colored by Risk)')
 plt.xlabel('Timestamp / Index')
 plt.ylabel('Percentage (%)')
 plt.tight_layout()

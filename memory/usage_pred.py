@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error
 
 # Load data
-df = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\out.csv")
+df = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\processed_ip_data\out.csv")
 
 # Sort by time
 df['ts'] = pd.to_datetime(df['ts'], format='mixed', utc=True).dt.tz_convert(None)
@@ -21,7 +21,7 @@ leakage_cols = ['rolling_mean_1h', 'rolling_mean_24h', 'rolling_std_1h', 'rollin
 df[leakage_cols] = df.groupby('host_id')[leakage_cols].shift(1)
 
 # Setup Forecasting Horizon
-FORECAST_HORIZON = 1
+FORECAST_HORIZON = 30
 df['target_forecast'] = df.groupby('host_id')['memory_usage_pct'].shift(-FORECAST_HORIZON)
 
 # Remove Invalid Rows resulting from shifts
@@ -83,6 +83,17 @@ results_df = results_df.rename(columns={
 })
 results_df['actual_forecast'] = y_test
 results_df['predicted_forecast'] = y_pred_test
+
+# Set datetime index to allow time-based rolling windows, grouped by host
+results_df = results_df.sort_values('ts').set_index('ts')
+
+# Calculate predicted stats properly
+results_df['predicted_rolling_std_24h'] = results_df.groupby('host_id')['predicted_forecast'].rolling('24h').std().reset_index(level=0, drop=True)
+results_df['predicted_growth_rate'] = results_df.groupby('host_id')['predicted_forecast'].pct_change()
+results_df['predicted_acceleration'] = results_df.groupby('host_id')['predicted_growth_rate'].diff()
+
+# Reset index to bring 'ts' back as a normal column before saving
+results_df = results_df.reset_index()
 results_path = r'C:\AI-Predictive-Maintenance\memory\results\usage_pred_results.csv'
 results_df.to_csv(results_path, index=False)
 print(f"Test results saved successfully to {results_path}")
@@ -108,7 +119,7 @@ plt.title('Test Set: Actual vs Predicted')
 plt.legend()
 
 plt.tight_layout()
-plt.savefig(r'C:\AI-Predictive-Maintenance\memory\forecast_scatter.png')
+plt.savefig(r'C:\AI-Predictive-Maintenance\memory\results\forecast_scatter.png')
 
 # Plotting: Time series line plots for the test set
 test_hosts = df.loc[X_test.index, 'host_id']
@@ -116,14 +127,14 @@ top_host = test_hosts.value_counts().idxmax() if not test_hosts.empty else None
 
 plt.figure(figsize=(15, 6))
 if top_host is not None:
-    plot_mask = test_hosts == top_host
-    plt.plot(df.loc[X_test.index[plot_mask], 'ts'], y_test[plot_mask], label='Actual', alpha=0.7)
-    plt.plot(df.loc[X_test.index[plot_mask], 'ts'], y_pred_test[plot_mask.values], label='Predicted', alpha=0.7)
-    plt.title(f'Test Set: Actual vs Predicted over Time (24h Forecast) - Host {top_host}')
+    plot_mask_vals = (test_hosts == top_host).values
+    plt.plot(df.loc[X_test.index[plot_mask_vals], 'ts'], y_test.iloc[plot_mask_vals], label='Actual', alpha=0.7)
+    plt.plot(df.loc[X_test.index[plot_mask_vals], 'ts'], y_pred_test[plot_mask_vals], label='Predicted', alpha=0.7)
+    plt.title(f'Test Set: Actual vs Predicted over Time - Host {top_host}')
 else:
     plt.plot(df.loc[X_test.index, 'ts'], y_test, label='Actual', alpha=0.7)
     plt.plot(df.loc[X_test.index, 'ts'], y_pred_test, label='Predicted', alpha=0.7)
-    plt.title('Test Set: Actual vs Predicted over Time (24h Forecast)')
+    plt.title('Test Set: Actual vs Predicted over Time ')
 
 plt.xlabel('Time')
 plt.ylabel('Memory Usage %')
