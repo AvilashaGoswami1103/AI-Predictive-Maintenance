@@ -4,9 +4,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 df1 = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\anomaly_result.csv")
-df2 = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\usage_pred_results.csv")
+df_pred = pd.read_csv(r"C:\AI-Predictive-Maintenance\memory\results\anomaly_pred_result.csv")
 
-df_rs = pd.merge(df1, df2[['id', 'ts', 'predicted_forecast']], on=['id', 'ts'], how='inner')
+df_pred = df_pred.rename(columns={'anomaly_score': 'predicted_anomaly_score'})
+
+# Merge using 'id' to avoid potential timestamp string formatting mismatches between scripts
+df_rs = pd.merge(df1, df_pred[['id', 'predicted_forecast', 'predicted_anomaly_score']], on='id', how='inner')
 
 #calculate current risk based on mem usage
 def current_risk(memory_usage):
@@ -59,21 +62,29 @@ def anomaly_risk(score, min_score=-0.3, max_score=0.3):
 
     return np.clip(risk,0,100)
 
+#calculate the predicted anomaly risk based on the anomaly detection on predicted data
+def predicted_anomaly_risk(score, min_score=-0.3, max_score=0.3):
+
+    risk = 100 * ((score - min_score) / (max_score - min_score))
+
+    return np.clip(risk, 0, 100)
+
 
 max_std = df_rs['rolling_std_24h'].max()
 #calculate stability risk based on rolling standard for 24 h
 def stability_risk(std):
-
+    if pd.isna(std) or pd.isna(max_std) or max_std == 0:
+        return 0
     return min(
         100,
         (std / max_std) * 100
     )
 
-print(df_rs.columns)
 df_rs['risk_score'] = (
     0.15 * df_rs['memory_usage_pct'].apply(current_risk) +
     0.20 * df_rs['predicted_forecast'].apply(forecast_risk) +
-    0.40 * df_rs['anomaly_score'].apply(anomaly_risk) +
+    0.20 * df_rs['anomaly_score'].apply(anomaly_risk) +
+    0.20 * df_rs['predicted_anomaly_score'].apply(predicted_anomaly_risk) +
     0.25 * df_rs['rolling_std_24h'].apply(stability_risk)
 )
 
@@ -81,7 +92,8 @@ df_rs['status_risk_score'] = (
     df_rs['risk_score'].apply(get_risk_status)
 )
 
-df_rs.to_csv('result_riskscoring.csv')
+result_path = r"C:\AI-Predictive-Maintenance\memory\results\result_riskscoring.csv"
+df_rs.to_csv(result_path, index=False)
 
 # Continuous line plot over time
 if 'ts' in df_rs.columns:
@@ -148,5 +160,5 @@ plt.title('Continuous Memory Usage and Forecast Over Time (Colored by Risk)')
 plt.xlabel('Timestamp / Index')
 plt.ylabel('Percentage (%)')
 plt.tight_layout()
-plt.savefig('colored_line_plot.png')
+plt.savefig(r'C:\AI-Predictive-Maintenance\memory\results\risk_scoring.png')
 plt.show()
