@@ -3,6 +3,5 @@ pandas
 scikit-learn
 matplotlib
 seaborn
-prophet
 xgboost
 plotly
