@@ -65,9 +65,9 @@ def stability_risk(std):
     )
 
 df_rs['risk_score'] = (
-    0.25 * df_rs['memory_usage_pct'].apply(current_risk) +
+    0.20 * df_rs['memory_usage_pct'].apply(current_risk) +
     0.40 * df_rs['anomaly_score'].apply(anomaly_risk) +
-    0.25 * df_rs['instant_change'].apply(transition_risk) +
+    0.40 * df_rs['instant_change'].apply(transition_risk) +
     0.20 * df_rs['rolling_std_24h'].apply(stability_risk)
 )
 
