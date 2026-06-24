@@ -2,7 +2,6 @@ venv/
 *.csv
 __pycache__/
 processed_ip_data/
-testingntrials/
 *.xlsx
 results/
 # Ignore ALL data
