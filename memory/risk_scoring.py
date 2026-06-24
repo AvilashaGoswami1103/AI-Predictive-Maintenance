@@ -76,4 +76,4 @@ def calculate_risk(data, is_predicted=False):
         )
         
     df['status_risk_score'] = df['risk_score'].apply(get_risk_status)
-    return df
+    return df
