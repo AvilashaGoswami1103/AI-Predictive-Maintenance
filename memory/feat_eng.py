@@ -1,37 +1,38 @@
-import pandas as pd 
+import pandas as pd
 
-def featured_data(file_path, output_path=None):
-    data = pd.read_csv(file_path)
-    
+def engineer_features(data):
+    """
+    Applies feature engineering grouped by host_id.
+    """
     if 'ts' in data.columns:
-        data['ts_dt'] = pd.to_datetime(data['ts'], format='mixed', utc=True).dt.tz_localize(None)
-        data = data.sort_values(by='ts_dt')
+        data['ts'] = pd.to_datetime(data['ts'], format='mixed', utc=True).dt.tz_localize(None)
+        data = data.sort_values(by='ts')
+        data = data.set_index('ts')
         
-        data = data.set_index('ts_dt')
-        
-        data['rolling_mean_1h'] = data['memory_usage_pct'].rolling('1h').mean()
-        data['rolling_mean_24h'] = data['memory_usage_pct'].rolling('24h').mean()
-        data['rolling_std_1h'] = data['memory_usage_pct'].rolling('1h').std()
-        data['rolling_std_24h'] = data['memory_usage_pct'].rolling('24h').std()
-        
-        data['growth_rate'] = data['memory_usage_pct'].pct_change()
-        data['acceleration'] = data['growth_rate'].diff()
-        
-        data['Z_score'] = (data['memory_usage_pct'] - data['rolling_mean_24h']) / data['rolling_std_24h']
-        data['trend'] = data['rolling_mean_1h'] - data['rolling_mean_24h']
-        data['volatility_ratio'] = data['rolling_std_1h'] - data['rolling_std_24h']
-        
-        data = data.reset_index(drop=True)
-        
-    if output_path:
-        data.to_csv(output_path, index=False)
-        
-    return data
+        def calculate_host_features(group):
+            # Ensure chronological order
+            group = group.sort_index()
+            group['rolling_mean_1h'] = group['memory_usage_pct'].rolling('1h').mean()
+            group['rolling_mean_24h'] = group['memory_usage_pct'].rolling('24h').mean()
+            group['rolling_std_1h'] = group['memory_usage_pct'].rolling('1h').std()
+            group['rolling_std_24h'] = group['memory_usage_pct'].rolling('24h').std()
+            
+            group['growth_rate'] = group['memory_usage_pct'].pct_change()
+            group['acceleration'] = group['growth_rate'].diff()
+            
+            group['Z_score'] = (group['memory_usage_pct'] - group['rolling_mean_24h']) / group['rolling_std_24h']
+            group['trend'] = group['rolling_mean_1h'] - group['rolling_mean_24h']
+            group['volatility_ratio'] = group['rolling_std_1h'] - group['rolling_std_24h']
+            
+            return group
 
+        # Apply features per host to avoid cross-host leakage
+        if 'host_id' in data.columns:
+            data = data.groupby('host_id', group_keys=False).apply(calculate_host_features)
+        else:
+            # Fallback if no host_id
+            data = calculate_host_features(data)
 
-file1= r"C:\server_data\Datacenter Datas\SERVER WISE DATA\host_metrics_host1.csv"
-file2 = r"C:\server_data\Datacenter Datas\SERVER WISE DATA\host_metrics_host2.csv"
-file3 = r"C:\server_data\Datacenter Datas\SERVER WISE DATA\host_metrics_host3.csv"
-featured_data(file1, "out.csv")
-featured_data(file2, "out1.csv")
-featured_data(file3, "out2.csv")
+        data = data.reset_index(drop=False)
+        
+    return data
