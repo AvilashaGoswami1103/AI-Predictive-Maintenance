@@ -76,4 +76,66 @@ def predict_usage(data, forecast_horizon=30):
     results_df = results_df.groupby('host_id', group_keys=False).apply(calc_pred_features)
     results_df = results_df.reset_index()
     
-    return results_df
+    return results_df
+
+def plot_usage_prediction(result_df, output_dir, show_plot=False):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import os
+    import pandas as pd
+
+    sns.set_theme(style="whitegrid")
+    plt.figure(figsize=(15, 6))
+    
+    if 'actual_forecast' in result_df.columns and 'predicted_forecast' in result_df.columns and 'ts' in result_df.columns:
+        result_df = result_df.copy()
+        result_df['ts'] = pd.to_datetime(result_df['ts'], format='mixed', utc=True).dt.tz_localize(None)
+        
+        if 'host_id' in result_df.columns:
+            hosts = result_df['host_id'].unique()[:1]
+            df_plot = result_df[result_df['host_id'] == hosts[0]]
+            plt.title(f'Actual vs Predicted Usage (Test Set) (Host {hosts[0]})')
+        else:
+            df_plot = result_df
+            plt.title('Actual vs Predicted Usage (Test Set)')
+            
+        plt.plot(df_plot['ts'], df_plot['actual_forecast'], color='blue', alpha=0.7, label='Actual Future Usage')
+        plt.plot(df_plot['ts'], df_plot['predicted_forecast'], color='red', alpha=0.7, linestyle='--', label='Predicted Future Usage')
+        
+        plt.xlabel('Time')
+        plt.ylabel('Memory Usage (%)')
+        plt.legend()
+        plt.tight_layout()
+        
+        os.makedirs(output_dir, exist_ok=True)
+        plot_path = os.path.join(output_dir, 'usage_prediction.png')
+        plt.savefig(plot_path)
+        print(f"Plot saved to {plot_path}")
+        
+        if show_plot:
+            plt.show()
+        else:
+            plt.close()
+    else:
+        print("Required columns (ts, actual_forecast, predicted_forecast) not found for plotting.")
+
+if __name__ == "__main__":
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser(description="Run usage prediction on input data and plot results.")
+    parser.add_argument("--input", required=True, help="Path to input CSV file")
+    parser.add_argument("--output_dir", default="results", help="Directory to save plot")
+    parser.add_argument("--horizon", type=int, default=30, help="Forecast horizon")
+    args = parser.parse_args()
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    print(f"Loading data from {args.input}...")
+    df = pd.read_csv(args.input)
+    
+    print(f"Running usage prediction (horizon={args.horizon})...")
+    result_df = predict_usage(df, forecast_horizon=args.horizon)
+    
+    print("Generating plot...")
+    plot_usage_prediction(result_df, args.output_dir, show_plot=True)

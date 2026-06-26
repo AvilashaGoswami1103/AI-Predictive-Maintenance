@@ -44,8 +44,7 @@ def generate_comparison_plots(df_real, df_predicted, output_dir):
     plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.01, 1), loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'memory_usage_comparison.png'))
-    plt.close()
-
+    plt.show()
     # ---------------------------------------------------------
     # 2. Plot Risk Scores
     # ---------------------------------------------------------
@@ -58,7 +57,7 @@ def generate_comparison_plots(df_real, df_predicted, output_dir):
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'risk_score_comparison.png'))
-    plt.close()
+    plt.show()
 
     # ---------------------------------------------------------
     # 3. Plot Anomaly Scores
@@ -72,6 +71,31 @@ def generate_comparison_plots(df_real, df_predicted, output_dir):
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'anomaly_score_comparison.png'))
-    plt.close()
+    plt.show()
     
     print(f"Comparison plots saved successfully in {output_dir}")
+
+if __name__ == "__main__":
+    import argparse
+    import pandas as pd
+
+    parser = argparse.ArgumentParser(description="Generate comparison plots between actual and predicted data.")
+    parser.add_argument("--real", required=True, help="Path to actual data CSV")
+    parser.add_argument("--pred", required=True, help="Path to predicted data CSV")
+    parser.add_argument("--output_dir", default="results", help="Directory to save plots")
+    args = parser.parse_args()
+
+    print(f"Loading actual data from {args.real}...")
+    df_real = pd.read_csv(args.real)
+    
+    print(f"Loading predicted data from {args.pred}...")
+    df_predicted = pd.read_csv(args.pred)
+    
+    # Pre-convert timestamps to standard datetime format for plotting
+    if 'ts' in df_real.columns:
+        df_real['ts'] = pd.to_datetime(df_real['ts'], format='mixed', utc=True).dt.tz_localize(None)
+    if 'ts' in df_predicted.columns:
+        df_predicted['ts'] = pd.to_datetime(df_predicted['ts'], format='mixed', utc=True).dt.tz_localize(None)
+        
+    print("Generating comparison plots...")
+    generate_comparison_plots(df_real, df_predicted, args.output_dir)

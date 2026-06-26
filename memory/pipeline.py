@@ -3,11 +3,12 @@ import argparse
 import pandas as pd
 
 from feat_eng import engineer_features
-from anomaly_det import detect_anomalies
-from usage_pred import predict_usage
-from anomaly_pred import predict_anomalies
+from anomaly_det import detect_anomalies, plot_anomaly_detection_actual
+from usage_pred import predict_usage, plot_usage_prediction
+from anomaly_pred import predict_anomalies, plot_anomaly_prediction
 from risk_scoring import calculate_risk
 from compare import generate_comparison_plots
+from resampling import resample
 
 def run_pipeline(input_files, output_dir, forecast_horizon=30):
     os.makedirs(output_dir, exist_ok=True)
@@ -34,6 +35,15 @@ def run_pipeline(input_files, output_dir, forecast_horizon=30):
     data.drop(columns=["cpu_usage_pct", "status", "power_kw"], inplace=True, errors='ignore')
     
     # ---------------------------------------------------------
+    # 1.5 Resampling
+    # ---------------------------------------------------------
+    print("Running resampling...")
+    data = resample(data)
+    if data.empty:
+        print("Data is empty after resampling. Exiting.")
+        return
+        
+    # ---------------------------------------------------------
     # 2. Feature Engineering
     # ---------------------------------------------------------
     print("Running feature engineering...")
@@ -47,6 +57,9 @@ def run_pipeline(input_files, output_dir, forecast_horizon=30):
     # ---------------------------------------------------------
     print("Running anomaly detection on actual data...")
     data = detect_anomalies(data)
+    
+    print("Plotting actual anomaly detection...")
+    plot_anomaly_detection_actual(data, output_dir)
     
     # ---------------------------------------------------------
     # 4. Risk Scoring (Actuals)
@@ -67,11 +80,17 @@ def run_pipeline(input_files, output_dir, forecast_horizon=30):
         print("Prediction failed or returned empty. Exiting.")
         return
         
+    print("Plotting usage prediction...")
+    plot_usage_prediction(predicted_data, output_dir)
+        
     # ---------------------------------------------------------
     # 6. Anomaly Detection (Predicted)
     # ---------------------------------------------------------
     print("Running anomaly detection on predicted data...")
     predicted_data = predict_anomalies(predicted_data)
+    
+    print("Plotting predicted anomaly detection...")
+    plot_anomaly_prediction(predicted_data, output_dir)
     
     # ---------------------------------------------------------
     # 7. Risk Scoring (Predicted)
