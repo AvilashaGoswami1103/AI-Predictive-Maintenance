@@ -33,6 +33,12 @@ def detect_anomalies(data):
     
     data_clean["anomaly_score"] = -scores
     
+    # Cap non-anomalies to baseline to avoid false anomaly risk contributions
+    data_clean.loc[data_clean["anomaly_score"] <= 0.22, "anomaly_score"] = -0.3
+    
+    # Ensure major jumps are always flagged as critical anomalies
+    data_clean.loc[data_clean["growth_rate"].abs() >= 0.5, "anomaly_score"] = 0.3
+    
     # Merge back to original dataframe to maintain size/index
     data["anomaly_score"] = np.nan
     data.loc[data_clean.index, "anomaly_score"] = data_clean["anomaly_score"]

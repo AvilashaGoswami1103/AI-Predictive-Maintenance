@@ -47,10 +47,10 @@ def calculate_risk(data, is_predicted=False):
             return min(100, (std / max_std) * 100)
             
         df['risk_score'] = (
-            0.20 * df['predicted_forecast'].apply(forecast_risk) +
-            0.40 * df['anomaly_score'].apply(anomaly_risk) +
-            0.47 * df['predicted_instant_change'].apply(transition_risk) +
-            0.20 * df['predicted_rolling_std_24h'].apply(stability_risk)
+            0.25 * df['predicted_forecast'].apply(forecast_risk) +
+            0.35 * df['anomaly_score'].apply(anomaly_risk) +
+            0.40 * df['predicted_instant_change'].apply(transition_risk) +
+            0.27 * df['predicted_rolling_std_24h'].apply(stability_risk)
         )
     else:
         if 'memory_usage_pct' not in df.columns:
@@ -69,10 +69,10 @@ def calculate_risk(data, is_predicted=False):
             return min(100, (std / max_std) * 100)
             
         df['risk_score'] = (
-            0.20 * df['memory_usage_pct'].apply(forecast_risk) +
-            0.40 * df['anomaly_score'].apply(anomaly_risk) +
-            0.45 * df['instant_change'].apply(transition_risk) +
-            0.20 * df['rolling_std_24h'].apply(stability_risk)
+            0.25 * df['memory_usage_pct'].apply(forecast_risk) +
+            0.35 * df['anomaly_score'].apply(anomaly_risk) +
+            0.40 * df['instant_change'].apply(transition_risk) +
+            0.27 * df['rolling_std_24h'].apply(stability_risk)
         )
         
     df['status_risk_score'] = df['risk_score'].apply(get_risk_status)
