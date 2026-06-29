@@ -42,6 +42,14 @@ def predict_anomalies(data):
     data["anomaly_score"] = np.nan
     data.loc[data_clean.index, "anomaly_score"] = data_clean["anomaly_score"]
     
+    # Save the scaler and model for inference
+    import joblib
+    import os
+    model_dir = os.path.join(os.path.dirname(__file__), "..", "models")
+    os.makedirs(model_dir, exist_ok=True)
+    joblib.dump(scaler, os.path.join(model_dir, "anomaly_pred_scaler.pkl"))
+    joblib.dump(model, os.path.join(model_dir, "anomaly_pred_model.pkl"))
+    
     return data
 
 def plot_anomaly_prediction(result_df, output_dir, show_plot=False):

@@ -44,6 +44,13 @@ def predict_usage(data, forecast_horizon=30):
     )
     
     model.fit(X_train, y_train, verbose=False)
+    
+    # Save the model for inference
+    import os
+    model_dir = os.path.join(os.path.dirname(__file__), "..", "models")
+    os.makedirs(model_dir, exist_ok=True)
+    model.save_model(os.path.join(model_dir, "usage_pred_model.json"))
+    
     y_pred_test = model.predict(X_test)
     
     # Save results
@@ -87,7 +94,7 @@ def plot_usage_prediction(result_df, output_dir, show_plot=False):
     sns.set_theme(style="whitegrid")
     plt.figure(figsize=(15, 6))
     
-    if 'actual_forecast' in result_df.columns and 'predicted_forecast' in result_df.columns and 'ts' in result_df.columns:
+    if 'predicted_forecast' in result_df.columns and 'ts' in result_df.columns:
         result_df = result_df.copy()
         result_df['ts'] = pd.to_datetime(result_df['ts'], format='mixed', utc=True).dt.tz_localize(None)
         
@@ -99,7 +106,8 @@ def plot_usage_prediction(result_df, output_dir, show_plot=False):
             df_plot = result_df
             plt.title('Actual vs Predicted Usage (Test Set)')
             
-        plt.plot(df_plot['ts'], df_plot['actual_forecast'], color='blue', alpha=0.7, label='Actual Future Usage')
+        if 'actual_forecast' in df_plot.columns:
+            plt.plot(df_plot['ts'], df_plot['actual_forecast'], color='blue', alpha=0.7, label='Actual Future Usage')
         plt.plot(df_plot['ts'], df_plot['predicted_forecast'], color='red', alpha=0.7, linestyle='--', label='Predicted Future Usage')
         
         plt.xlabel('Time')
@@ -117,7 +125,7 @@ def plot_usage_prediction(result_df, output_dir, show_plot=False):
         else:
             plt.close()
     else:
-        print("Required columns (ts, actual_forecast, predicted_forecast) not found for plotting.")
+        print("Required columns (ts, predicted_forecast) not found for plotting.")
 
 if __name__ == "__main__":
     import argparse

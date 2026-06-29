@@ -2,6 +2,10 @@ venv/
 *.csv
 __pycache__/
 processed_ip_data/
+inference_results/
+*.pkl
+__init__.py
+models/
 testingntrials/
 *.xlsx
 results/
