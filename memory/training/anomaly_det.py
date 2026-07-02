@@ -78,7 +78,7 @@ def plot_anomaly_detection_actual(result_df, output_dir, show_plot=False):
         plt.plot(df_plot['ts'], df_plot['memory_usage_pct'], color='blue', alpha=0.5, label='Memory Usage')
         
         # Highlight anomalies (scores > 0.22)
-        anomalies = df_plot[df_plot['anomaly_score'] > 0.22]
+        anomalies = df_plot[df_plot['anomaly_score'] > 0.23]
         if not anomalies.empty:
             plt.scatter(anomalies['ts'], anomalies['memory_usage_pct'], color='red', label='Anomalies', s=30, zorder=5)
             

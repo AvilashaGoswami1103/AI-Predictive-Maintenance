@@ -75,7 +75,7 @@ def plot_anomaly_prediction(result_df, output_dir, show_plot=False):
             
         plt.plot(df_plot['ts'], df_plot['predicted_forecast'], color='blue', alpha=0.5, linestyle='--', label='Predicted Forecast')
         
-        anomalies = df_plot[df_plot['anomaly_score'] > 0.22]
+        anomalies = df_plot[df_plot['anomaly_score'] > 0.23]
         if not anomalies.empty:
             plt.scatter(anomalies['ts'], anomalies['predicted_forecast'], color='red', label='Predicted Anomalies', s=30, zorder=5)
             

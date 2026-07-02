@@ -19,6 +19,7 @@ from compare import generate_comparison_plots
 from inference_anomaly_det import detect_anomalies_inference
 from inference_usage_pred import predict_usage_inference
 from inference_anomaly_pred import predict_anomalies_inference
+from deviation_det import drift_detection
 
 def run_inference_pipeline(input_files, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -83,6 +84,9 @@ def run_inference_pipeline(input_files, output_dir):
     
     print("Generating comparison plots...")
     generate_comparison_plots(data, predicted_data, output_dir)
+    
+    print("Running drift detection...")
+    drift_detection(data, predicted_data, output_dir)
     
     print("\nInference Pipeline completed successfully!")
 
